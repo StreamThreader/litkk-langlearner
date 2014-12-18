@@ -33,13 +33,12 @@ echo "Содержимое файла прочитано в память"
 
 while true
 do
-	echo "Отсчёт строк начинаеться от 0"
+	echo "Отсчёт строк начинается от 0"
 	echo "Всего строк: $NUMSTRING"
 	echo "Всего попыток: $NUMTRY"
 	echo "Осталось попыток: $NUMTRY"
 	echo "___________________________"
 	echo "Напишите x, что бы выйти"
-	echo "Напишите c, что бы отчистить экран"
 	echo "Укажите номер строки:"
 
 	read -s numstr
@@ -49,10 +48,6 @@ do
 	then
 		echo "Выполнен выход"
 		exit 0
-	elif (echo $numstr | grep -x "c" > /dev/null)
-	then
-		clear
-		continue
 	fi
 
 	if ! [[ $numstr =~ [[:digit:]] ]]
@@ -83,19 +78,19 @@ do
 		continue
 	fi
 
-	echo "Вопрос: "${FARR[$numstr]} | awk -F'*' '{print $1'\n'}'
+	echo -e "Вопрос: $(tput setaf 2)"${FARR[$numstr]} | awk -F'*' '{print $1'\n'}'
+	tput sgr 0
 	echo -e "Введите ответ:\n"
 			
-	# Read two part after * and remove spaces
+	# Read second part after * and remove spaces
 	ORIGSTRING="$(echo ${FARR[$numstr]} | awk -F "*" '{print $2}' |sed -e "s/[[:space:]]\+/*/g")"
 
 	ORIGFIL="$(echo "$ORIGSTRING" | awk -F "," '{print NF}')"
 
-	for i in $(seq $ORIGFIL)
+	for i in $(seq 1 $ORIGFIL)
 	do
-		ORIGARR[$i]="$(echo "$ORIGSTRING" | awk -F "," '{print $i}')"
+		ORIGARR[$i]="$(echo "$ORIGSTRING" | awk -v i=$i -F ',' '{print $i}')"
 	done
-
 
 	read ansver
 
@@ -104,26 +99,24 @@ do
 	ANSFIL="$(echo "$ANSSTRING" | awk -F "," '{print NF}')"
 
 
-	for i in $(seq $ORIGFIL)
+	for i in $(seq 1 $ANSFIL)
 	do
-		ANSARR[$i]="$(echo "$ansver" | awk -F "," '{print $i}')"
+		ANSARR[$i]="$(echo $ANSSTRING | awk -v i=$i -F ',' '{print $i}')"
 	done
 
 	HIT="0"
 
-	for i in $(seq $ORIGFIL)
+	# Start comaprsion
+	for i in $(seq 1 $ORIGFIL)
 	do
-		for a in $(seq $ORIGFIL)
+		for a in $(seq 1 $ANSFIL)
 		do
-			VARA="$(echo ${ORIGARR[$i]} | sed -e "s/*//g")"
-			VARB="$(echo ${ANSARR[$a]} | sed -e "s/*//g")"
+			ORIGCOMP="$(echo ${ORIGARR[$i]} | sed -e "s/*//g")"
+			ANSCOMP="$(echo ${ANSARR[$a]} | sed -e "s/*//g")"
 
-			echo "$VARA---"
-			echo "$VARB---"
-
-			if [ "$VARA" == "$VARB" ]
+			if [ "$ORIGCOMP" == "$ANSCOMP" ]
 			then
-				(($HIT+1))
+				HIT="$(echo $HIT"+1" | bc)"
 			fi
 		done
 	done
@@ -132,17 +125,30 @@ do
 
 	if [ $HIT -eq 0 ]
 	then
+		tput setaf 1
 		echo -e "\tВаш ответ не совпал\n"
+		tput sgr 0
 	elif [ $ORIGFIL -gt $HIT ]
 	then
-		echo -e "\tВы набрали $HIT очков из $ORIGFIL возможных\n"
+		echo -e "\tВы набрали $(tput setaf 6)$HIT$(tput sgr 0) очков из $(tput setaf 2)$ORIGFIL$(tput sgr 0) возможных\n"
 	else
+		tput setaf 3
 		echo -e "\tВаш ответ полностью совпадает!\n"
-		echo -e "\tС оригиналом: "$RIGHTANS"\n"
+		tput sgr 0
+		echo -e "\tс оригиналом: "$RIGHTANS"\n"
+
+	        echo -e "\n\n\nНажмите Enter для продолжения!\n"
+
+	        read
+
+	        clear
+
+		tput sgr 0
+
 		continue
 	fi
 
-	echo -e "\tОтвет был таков: "$RIGHTANS"\n"
+	echo -e "\tОтвет был таков: $(tput setaf 5)"$RIGHTANS"$(tput sgr 0)\n"
 
 	NUMTRY="$(echo $NUMTRY - 1 | bc)"
 
@@ -152,6 +158,12 @@ do
 		exit 0
 	fi
 
-	echo -e "\tПопробуйте ещё раз!\n"
+	echo -e "\n\n\nНажмите Enter для продолжения!\n"
+
+	read
+
+	clear
+
+	tput sgr 0
 done
 
