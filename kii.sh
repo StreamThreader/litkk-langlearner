@@ -1,20 +1,39 @@
 #!/bin/bash
 
-FILE="/data/Project/bash/trainer.lst"
-numstr=""
-NUMTRY=12
-FARCOUNT="0"
+#
+# Author:	Oleg A. Deordiev
+# For:		LITKK
+# Developed:	2015
+#
+
+###########################################################################
+
+FILE="/data/Project/bash/trainer.lst"	# File with question & ansver
+NUMTRY=12				# Max number of user errors
+COUNTER=				# Counter
+FARR[0]=0				# Array of question & ansver
+USERAND="NO"				# Use random sequesnce?
+lowbord=				# Low border
+highbord=				# High borader
+RANDSEQ=				# Randomized sequence of strings
+STRINGTXT=				# File string to variable
+NUMSTRING=				# Number of usable string in file
+USERNUMSTR=				# User choise number of string
+userchoise=				# User choise for program question
 
 
-echo ""
+###########################################################################
+
 
 if [ -f "$FILE" ]
 then
 	echo "Файл $FILE обнаружен"
 else
-	echo "Файл $FILE не обнаружен"
+	echo -e "\nФайл $FILE не обнаружен\n"
 	exit 1
 fi
+
+COUNTER=0
 
 # Read file to array
 while read STRINGTXT
@@ -22,14 +41,103 @@ do
 	# Skip comments "#"
 	if [ -n "$STRINGTXT" ] && !(echo $STRINGTXT | grep "^#" > /dev/null 2>&1 )
 	then
-		FARR[$FARCOUNT]="$(echo "$STRINGTXT" | sed -e "s/[[:space:]]\+/\ /g")"
-		FARCOUNT="$(($FARCOUNT+1))"
+		FARR[$COUNTER]="$(echo "$STRINGTXT" | sed -e "s/[[:space:]]\+/\ /g")"
+		COUNTER="$(($COUNTER+1))"
 	fi
 done < $FILE
 
 NUMSTRING=${#FARR[@]}
 
-echo "Содержимое файла прочитано в память"
+echo -e "Содержимое файла прочитано в память\n"
+
+echo -e "Использовать случайный порядок? [Y/N]\n"
+
+
+# Range settings
+while true
+do
+	read userchoise
+
+	if [[ $userchoise =~ ^([yY][eE][sS]|[yY])$ ]]
+	then
+		USERAND="YES"
+		while true
+		do
+			echo "Указать диапозон вручную? [Y/N]"
+
+			read userchoise
+
+			if [[ $userchoise =~ ^([yY][eE][sS]|[yY])$ ]]
+			then
+				while true
+				do
+					echo "Укажите нижний порог"
+					read lowbord
+
+					if [ $lowbord -gt $NUMSTRING ]
+					then
+						echo -e "Нижний порог не может быть больше числа $NUMSTRING\n"
+						continue
+					fi
+
+					break
+				done
+
+				while true
+				do
+					echo "Укажите верхний порог"
+					read highbord
+
+					if [ $highbord -gt $NUMSTRING ]
+					then
+						echo -e "Верхний порог не может быть больше числа $NUMSTRING\n"
+						continue
+					fi
+
+					break
+				done
+
+				# Limit upper border
+				NUMSTRING=$highbord
+
+			elif [[ $userchoise =~ ^([nN][oO]|[nN])$ ]]
+			then
+				echo -e "Будет использован диапозон: 0 - $NUMSTRING\n"
+				lowbord=0
+				highbord=$NUMSTRING
+			else
+				echo "Укажите Y или N"
+				continue
+			fi
+
+			# Randomize sequence to array
+			COUNTER=0
+			for i in $(seq $lowbord $highbord | sort -R)
+			do
+				RANDSEQ[$COUNTER]=$i
+				COUNTER=$(($COUNTER+1))
+			done
+
+			lowbord=
+			highbord=
+
+			break
+		done
+
+		break
+
+	elif [[ $userchoise =~ ^([nN][oO]|[nN])$ ]]
+	then
+		USERAND="NO"
+		break
+	else
+		echo "Укажите Y или N"
+		continue
+	fi
+done
+
+userchoise=
+COUNTER=0
 
 while true
 do
@@ -38,52 +146,67 @@ do
 	echo "Всего попыток: $NUMTRY"
 	echo "Осталось попыток: $NUMTRY"
 	echo "___________________________"
-	echo "Напишите x, что бы выйти"
-	echo "Укажите номер строки:"
 
-	read -s numstr
-	echo -e "Вы ввели: "$numstr'\n'
-
-	if (echo $numstr | grep -x "x" > /dev/null)
+	if [ $USERAND == NO ]
 	then
-		echo "Выполнен выход"
-		exit 0
+		echo "Напишите x, что бы выйти"
+		echo "Укажите номер строки:"
+		read -s USERNUMSTR
+		echo -e "Вы ввели: $USERNUMSTR\n"
+
+		if (echo $USERNUMSTR | grep -x "x" > /dev/null)
+		then
+			echo "Выполнен выход"
+			exit 0
+		fi
+
+		if ! [[ $USERNUMSTR =~ [[:digit:]] ]]
+		then
+			echo "Ввдёный символ: $USERNUMSTR, нельзя использовать в качестве номера строки, попробуйте ещё раз"
+			continue
+		fi
+	
+		if [ $USERNUMSTR -gt $NUMSTRING ]
+		then
+			echo "Ввдёное число: $USERNUMSTR, слишком большое"
+			echo "Попробуйте ввести любое число меньшее чем $NUMSTRING"
+			continue
+		fi
+
+	elif [ $USERAND == YES ]
+	then
+		if [ $COUNTER == $NUMSTRING ]
+		then
+			echo -e "\nВы ответили на все вопросы из выбраного диапозона\n"
+			exit 0
+		fi
+
+		USERNUMSTR=${RANDSEQ[$COUNTER]}
+		COUNTER=$(($COUNTER+1))
+		echo "В качестве номера строки выбрано: $USERNUMSTR"
 	fi
 
-	if ! [[ $numstr =~ [[:digit:]] ]]
-	then
-		echo "Ввдёный символ: $numstr, нельзя использовать в качестве номера строки, попробуйте ещё раз"
-		continue
-	fi
-
-	if [ $numstr -gt $NUMSTRING ]
-	then
-		echo "Ввдёное число: $numstr, слишком большое"
-		echo "Попробуйте ввести любое число меньшее чем $NUMSTRING"
-		continue
-	fi
-
-	if [ -z ${FARR[$numstr]} ] 2>/dev/null
+	if [ -z ${FARR[$USERNUMSTR]} ] 2>/dev/null
 	then
 		echo "Ошибка: строка в файле пустая, попробуйте ещё раз"
 		continue
 	fi
 
-	if [ "2" != "$(echo ${FARR[$numstr]} | awk -F "*" '{print NF}')" ]
+	if [ "2" != "$(echo ${FARR[$USERNUMSTR]} | awk -F "*" '{print NF}')" ]
 	then
 		echo ""
 		echo "В выбраной строке обнаружено более одного символа разделителя [ * ]"
-		echo "строка $numstr не может быть использована!"
+		echo "строка $USERNUMSTR не может быть использована!"
 		echo ""
 		continue
 	fi
 
-	echo -e "Вопрос: $(tput setaf 2)"${FARR[$numstr]} | awk -F'*' '{print $1'\n'}'
+	echo -e "Вопрос: $(tput setaf 2)"${FARR[$USERNUMSTR]} | awk -F'*' '{print $1'\n'}'
 	tput sgr 0
 	echo -e "Введите ответ:\n"
 			
 	# Read second part after * and remove spaces
-	ORIGSTRING="$(echo ${FARR[$numstr]} | awk -F "*" '{print $2}' |sed -e "s/[[:space:]]\+/*/g")"
+	ORIGSTRING="$(echo ${FARR[$USERNUMSTR]} | awk -F "*" '{print $2}' |sed -e "s/[[:space:]]\+/*/g")"
 
 	ORIGFIL="$(echo "$ORIGSTRING" | awk -F "," '{print NF}')"
 
@@ -92,12 +215,16 @@ do
 		ORIGARR[$i]="$(echo "$ORIGSTRING" | awk -v i=$i -F ',' '{print $i}')"
 	done
 
-	read ansver
 
-	ANSSTRING="$(echo "$ansver" | sed -e "s/[[:space:]]\+/*/g")"
+	# Get user ansver
+	read userchoise
+
+	ANSSTRING="$(echo "$userchoise" | sed -e "s/[[:space:]]\+/*/g")"
+
+	userchoise=
+
 
 	ANSFIL="$(echo "$ANSSTRING" | awk -F "," '{print NF}')"
-
 
 	for i in $(seq 1 $ANSFIL)
 	do
