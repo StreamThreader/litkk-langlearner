@@ -14,9 +14,9 @@
 
 FILE="/data/Project/bash/trainer.lst"	# File with question & ansver
 NUMTRY=12				# Max number of user errors
-COUNTER=				# Counter
+COUNTER=0				# Counter for some control
 FARR[0]=0				# Array of question & ansver
-USERAND="NO"				# Use random sequesnce?
+USERAND=				# Use random sequesnce?
 lowbord=				# Low border
 highbord=				# High borader
 RANDSEQ=				# Randomized sequence of strings
@@ -24,9 +24,11 @@ STRINGTXT=				# File string to variable
 NUMSTRING=				# Number of string
 USERNUMSTR=				# User choise number of string
 userchoise=				# User choise for program question
-EERQ[0]=0				# Array failed questions (pointer)
-ERRCOUNTER=				# Counter of recheck question
-ALLERR=0				# Miss counter
+ERRQ[0]=0				# Array failed questions (pointer)
+SOLVEDERR=0				# How many erros, re-ansvered
+INSERTCOUNT=0				# Count turn, for control insert question
+ERRCOUNTER=0				# Counter of recheck question
+GOODQUEST=0				# Count of good ansvered questions
 MISNUM=3				# How many iteration can by before insert
 					# not ansvered question
 
@@ -41,8 +43,6 @@ else
 	echo -e "\nФайл $FILE не обнаружен\n"
 	exit 1
 fi
-
-COUNTER=0
 
 # Function check user ansver Yes or No
 yesnofun() {
@@ -175,22 +175,23 @@ else
 fi
 
 userchoise=
-COUNTER=0
-#clear
 
+clear
+
+COUNTER=0
 
 while true
 do
-	echo "Отсчёт строк начинается от $lowbord"
-	echo "Всего строк: $NUMSTRING"
-	echo "Всего попыток: $NUMTRY"
-	echo "Осталось попыток: $NUMTRY"
-	echo "Правильных ответов:"
-	echo "Допущено ошибок:"
-	echo "Исправлено ошибок:"
+	echo "Отсчёт строк начинается от "$lowbord
+	echo "Всего строк: "$NUMSTRING
+	echo "Всего попыток: "$NUMTRY
+	echo "Осталось попыток: "$NUMTRY
+	echo "Правильных ответов: "$GOODQUEST
+	echo "Допущено ошибок: "$ERRCOUNTER
+	echo "Исправленно ошибок: "$SOLVEDERR
 	echo "___________________________"
 
-	if [[ $MISNUM -gt $ERRCOUNTER ]]
+	if [[ $MISNUM -gt $INSERTCOUNT ]]
 	then
 		if [ $USERAND == NO ]
 		then
@@ -218,19 +219,19 @@ do
 			COUNTER=$(($COUNTER+1))
 			echo "В качестве номера строки выбрано: $USERNUMSTR"
 		fi
-	elif [[ $MISNUM -eq $ERRCOUNTER ]]
+	elif [[ $MISNUM -eq $INSERTCOUNT ]]
 	then
 		# Insert question from not ansvered array
-		for i in seq 0 ${#EERQ[*]}
+		for i in $(seq 0 $ERRCOUNTER)
 		do
-			# If array item not pointer
 			if [[ ${ERRQ[$i]} == "OK" ]]
 			then
 				continue
 			else
 				USERNUMSTR=${ERRQ[$i]}
-				echo -e "Произведена вставка вопроса на который был дан не верный ответ"
-				echo "-"$USERNUMSTR"--"${#EERQ[*]}
+				echo "Произведена вставка вопроса на который был дан не верный ответ"
+				echo -e "В качестве номера строки выбрано: "$USERNUMSTR'\n'
+				break
 			fi
 		done
 	fi
@@ -318,9 +319,33 @@ do
 
 	        read
 
-#	        clear
+	        clear
 
 		tput sgr 0
+
+		if [[ $MISNUM -gt $INSERTCOUNT ]]
+		then
+			# If this new good ansver
+			GOODQUEST=$(($GOODQUEST+1))
+
+			INSERTCOUNT=$(($INSERTCOUNT+1))
+		else
+			# If this recheck, add as solved
+			SOLVEDERR=$(($SOLVEDERR+1))
+
+			# Exclude pointer from array
+			for i in $(seq 0 $ERRCOUNTER)
+			do
+				# Search current value
+				if [[ ${ERRQ[$i]} == $USERNUMSTR ]]
+				then
+					ERRQ[$i]="OK"
+					break
+				fi
+			done
+
+			INSERTCOUNT=0
+		fi
 
 		continue
 	fi
@@ -328,7 +353,7 @@ do
 	echo -e "\tОтвет был таков: $(tput setaf 5)"$RIGHTANS"$(tput sgr 0)\n"
 
 	# If this recheck MISS question, disable counter
-	if [[ $MISNUM -gt $ERRCOUNTER ]]
+	if [[ $MISNUM -gt $INSERTCOUNT ]]
 	then
 		NUMTRY=$(($NUMTRY-1))
 	
@@ -338,27 +363,28 @@ do
 			exit 0
 		fi
 
-		ERRCOUNTER=$(($ERRCOUNTER+1))
-
 		# Point to not ansvered question
-		EERQ[$ALLERR]=$USERNUMSTR
+		ERRQ[$ERRCOUNTER]=$USERNUMSTR
 
 		# After add pointer, shift to next item
-		ALLERR=$(($ALLERR+1))
+		# increase error count
+		ERRCOUNTER=$(($ERRCOUNTER+1))
 
-	elif [[ $MISNUM -eq $ERRCOUNTER ]]
+		INSERTCOUNT=$(($INSERTCOUNT+1))
+
+	elif [[ $MISNUM -eq $INSERTCOUNT ]]
 	then
 		# If this question is not ansvered, reset counter
 		# and after 3 normal question, call not ansvered question
 		# controlled with this counter
-		ERRCOUNTER=0
+		INSERTCOUNT=0
 	fi
 
 	echo -e "\n\n\nНажмите Enter для продолжения!\n"
 
 	read
 
-#	clear
+	clear
 
 	tput sgr 0
 done
