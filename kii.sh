@@ -5,6 +5,10 @@
 # For:		LITKK
 # Developed:	2015
 #
+# Programm for learn some text with check itself
+#
+#
+
 
 ###########################################################################
 
@@ -17,9 +21,14 @@ lowbord=				# Low border
 highbord=				# High borader
 RANDSEQ=				# Randomized sequence of strings
 STRINGTXT=				# File string to variable
-NUMSTRING=				# Number of usable string in file
+NUMSTRING=				# Number of string
 USERNUMSTR=				# User choise number of string
 userchoise=				# User choise for program question
+EERQ[0]=0				# Array failed questions (pointer)
+ERRCOUNTER=				# Counter of recheck question
+ALLERR=0				# Miss counter
+MISNUM=3				# How many iteration can by before insert
+					# not ansvered question
 
 
 ###########################################################################
@@ -27,13 +36,68 @@ userchoise=				# User choise for program question
 
 if [ -f "$FILE" ]
 then
-	echo "Файл $FILE обнаружен"
+	echo -e "\nФайл $FILE обнаружен"
 else
 	echo -e "\nФайл $FILE не обнаружен\n"
 	exit 1
 fi
 
 COUNTER=0
+
+# Function check user ansver Yes or No
+yesnofun() {
+	TEXTMSG="$1"
+	USERANSVER=
+
+	while true
+	do
+		echo $TEXTMSG" [Yes/No]"
+
+		read -s USERANSVER
+
+		if [[ $USERANSVER =~ ^([yY][eE][sS]|[yY])$ ]]
+		then
+			USERANSVER=0
+			break
+		elif [[ $USERANSVER =~ ^([nN][oO]|[nN])$ ]]
+		then
+			USERANSVER=1
+			break
+		else
+			echo -e $USERANSVER" - не правильный выбор, используйте Yes или No\n"
+			continue
+		fi
+	done
+
+	return $USERANSVER
+}
+
+# Request user to input numbers
+numinfun() {
+	TEXTMSG="$1"
+	USERANSVER=
+
+	while true
+	do
+		echo $TEXTMSG
+
+		read USERANSVER
+
+		if [[ $USERANSVER =~ ^[[:digit:]]{1,}$ ]]
+		then
+			break
+		else
+			echo -e "Ввдёное число: $USERANSVER, нельзя использовать, попробуйте ещё раз\n"
+			continue
+		fi
+	done
+
+	retval=$USERANSVER
+
+	return 0
+}
+
+
 
 # Read file to array
 while read STRINGTXT
@@ -50,142 +114,127 @@ NUMSTRING=${#FARR[@]}
 
 echo -e "Содержимое файла прочитано в память\n"
 
-echo -e "Использовать случайный порядок? [Y/N]\n"
 
-
-# Range settings
-while true
-do
-	read userchoise
-
-	if [[ $userchoise =~ ^([yY][eE][sS]|[yY])$ ]]
+# Request user range
+if yesnofun "Использовать случайный порядок?"
+then
+	if yesnofun "Указать диапозон вручную?"
 	then
-		USERAND="YES"
 		while true
 		do
-			echo "Указать диапозон вручную? [Y/N]"
+			numinfun "Укажите нижний порог"
+			lowbord="$retval"
 
-			read userchoise
-
-			if [[ $userchoise =~ ^([yY][eE][sS]|[yY])$ ]]
+			if [[ $lowbord -gt $NUMSTRING ]]
 			then
-				while true
-				do
-					echo "Укажите нижний порог"
-					read lowbord
-
-					if [ $lowbord -gt $NUMSTRING ]
-					then
-						echo -e "Нижний порог не может быть больше числа $NUMSTRING\n"
-						continue
-					fi
-
-					break
-				done
-
-				while true
-				do
-					echo "Укажите верхний порог"
-					read highbord
-
-					if [ $highbord -gt $NUMSTRING ]
-					then
-						echo -e "Верхний порог не может быть больше числа $NUMSTRING\n"
-						continue
-					fi
-
-					break
-				done
-
-				# Limit upper border
-				NUMSTRING=$highbord
-
-			elif [[ $userchoise =~ ^([nN][oO]|[nN])$ ]]
-			then
-				echo -e "Будет использован диапозон: 0 - $NUMSTRING\n"
-				lowbord=0
-				highbord=$NUMSTRING
-			else
-				echo "Укажите Y или N"
+				echo -e "Нижний порог не может быть больше числа $NUMSTRING\n"
 				continue
+			else
+				break
 			fi
-
-			# Randomize sequence to array
-			COUNTER=0
-			for i in $(seq $lowbord $highbord | sort -R)
-			do
-				RANDSEQ[$COUNTER]=$i
-				COUNTER=$(($COUNTER+1))
-			done
-
-			lowbord=
-			highbord=
-
-			break
 		done
 
-		break
+		while true
+		do
 
-	elif [[ $userchoise =~ ^([nN][oO]|[nN])$ ]]
-	then
-		USERAND="NO"
-		break
+			numinfun "Укажите верхний порог"
+			highbord="$retval"
+
+			if [[ $highbord -gt $NUMSTRING ]]
+			then
+				echo -e "Верхний порог не может быть больше числа $NUMSTRING\n"
+				continue
+			else
+				break
+			fi
+		done
+
+		# From there NUMSTRING - is number of strig (not a upper limit)
+		NUMSTRING=$(($highbord-$lowbord))
 	else
-		echo "Укажите Y или N"
-		continue
+		echo -e "Будет использован диапозон: 0 - $NUMSTRING\n"
+
+		lowbord=0
+		highbord=$NUMSTRING
 	fi
-done
+
+	# Randomize sequence to array
+	COUNTER=0
+	for i in $(seq $lowbord $highbord | sort -R)
+	do
+		RANDSEQ[$COUNTER]=$i
+		COUNTER=$(($COUNTER+1))
+
+	done
+
+	USERAND="YES"
+else
+	USERAND="NO"
+	lowbord=0
+	highbord=$NUMSTRING
+fi
 
 userchoise=
 COUNTER=0
+#clear
+
 
 while true
 do
-	echo "Отсчёт строк начинается от 0"
+	echo "Отсчёт строк начинается от $lowbord"
 	echo "Всего строк: $NUMSTRING"
 	echo "Всего попыток: $NUMTRY"
 	echo "Осталось попыток: $NUMTRY"
+	echo "Правильных ответов:"
+	echo "Допущено ошибок:"
+	echo "Исправлено ошибок:"
 	echo "___________________________"
 
-	if [ $USERAND == NO ]
+	if [[ $MISNUM -gt $ERRCOUNTER ]]
 	then
-		echo "Напишите x, что бы выйти"
-		echo "Укажите номер строки:"
-		read -s USERNUMSTR
-		echo -e "Вы ввели: $USERNUMSTR\n"
-
-		if (echo $USERNUMSTR | grep -x "x" > /dev/null)
+		if [ $USERAND == NO ]
 		then
-			echo "Выполнен выход"
-			exit 0
-		fi
+			numinfun "Укажите номер строки:"
+			USERNUMSTR="$retval"
+			
+			echo -e "Вы ввели: $USERNUMSTR\n"
 
-		if ! [[ $USERNUMSTR =~ [[:digit:]] ]]
-		then
-			echo "Ввдёный символ: $USERNUMSTR, нельзя использовать в качестве номера строки, попробуйте ещё раз"
-			continue
-		fi
-	
-		if [ $USERNUMSTR -gt $NUMSTRING ]
-		then
-			echo "Ввдёное число: $USERNUMSTR, слишком большое"
-			echo "Попробуйте ввести любое число меньшее чем $NUMSTRING"
-			continue
-		fi
+			if [[ $USERNUMSTR -gt $highbord ]]
+			then
+				echo "Ввдёное число: $USERNUMSTR, слишком большое"
+				echo "Попробуйте ввести любое число меньшее чем $highbord"
+				continue
+			fi
 
-	elif [ $USERAND == YES ]
+		elif [ $USERAND == YES ]
+		then
+			if [ $COUNTER == $NUMSTRING ]
+			then
+				echo -e "\nВы ответили на все вопросы из выбраного диапозона\n"
+				exit 0
+			fi
+
+			USERNUMSTR=${RANDSEQ[$COUNTER]}
+			COUNTER=$(($COUNTER+1))
+			echo "В качестве номера строки выбрано: $USERNUMSTR"
+		fi
+	elif [[ $MISNUM -eq $ERRCOUNTER ]]
 	then
-		if [ $COUNTER == $NUMSTRING ]
-		then
-			echo -e "\nВы ответили на все вопросы из выбраного диапозона\n"
-			exit 0
-		fi
-
-		USERNUMSTR=${RANDSEQ[$COUNTER]}
-		COUNTER=$(($COUNTER+1))
-		echo "В качестве номера строки выбрано: $USERNUMSTR"
+		# Insert question from not ansvered array
+		for i in seq 0 ${#EERQ[*]}
+		do
+			# If array item not pointer
+			if [[ ${ERRQ[$i]} == "OK" ]]
+			then
+				continue
+			else
+				USERNUMSTR=${ERRQ[$i]}
+				echo -e "Произведена вставка вопроса на который был дан не верный ответ"
+				echo "-"$USERNUMSTR"--"${#EERQ[*]}
+			fi
+		done
 	fi
-
+	
 	if [ -z ${FARR[$USERNUMSTR]} ] 2>/dev/null
 	then
 		echo "Ошибка: строка в файле пустая, попробуйте ещё раз"
@@ -243,7 +292,7 @@ do
 
 			if [ "$ORIGCOMP" == "$ANSCOMP" ]
 			then
-				HIT="$(echo $HIT"+1" | bc)"
+				HIT=$(($HIT+1))
 			fi
 		done
 	done
@@ -257,7 +306,8 @@ do
 		tput sgr 0
 	elif [ $ORIGFIL -gt $HIT ]
 	then
-		echo -e "\tВы набрали $(tput setaf 6)$HIT$(tput sgr 0) очков из $(tput setaf 2)$ORIGFIL$(tput sgr 0) возможных\n"
+		echo -e "\tВы набрали $(tput setaf 6)$HIT$(tput sgr 0) очков из\
+		       	$(tput setaf 2)$ORIGFIL$(tput sgr 0) возможных\n"
 	else
 		tput setaf 3
 		echo -e "\tВаш ответ полностью совпадает!\n"
@@ -268,7 +318,7 @@ do
 
 	        read
 
-	        clear
+#	        clear
 
 		tput sgr 0
 
@@ -277,19 +327,38 @@ do
 
 	echo -e "\tОтвет был таков: $(tput setaf 5)"$RIGHTANS"$(tput sgr 0)\n"
 
-	NUMTRY="$(echo $NUMTRY - 1 | bc)"
-
-	if [ $NUMTRY -eq 0 ]
+	# If this recheck MISS question, disable counter
+	if [[ $MISNUM -gt $ERRCOUNTER ]]
 	then
-		echo "Все попытки исчерпаны"
-		exit 0
+		NUMTRY=$(($NUMTRY-1))
+	
+		if [ $NUMTRY -eq 0 ]
+		then
+			echo "Все попытки исчерпаны"
+			exit 0
+		fi
+
+		ERRCOUNTER=$(($ERRCOUNTER+1))
+
+		# Point to not ansvered question
+		EERQ[$ALLERR]=$USERNUMSTR
+
+		# After add pointer, shift to next item
+		ALLERR=$(($ALLERR+1))
+
+	elif [[ $MISNUM -eq $ERRCOUNTER ]]
+	then
+		# If this question is not ansvered, reset counter
+		# and after 3 normal question, call not ansvered question
+		# controlled with this counter
+		ERRCOUNTER=0
 	fi
 
 	echo -e "\n\n\nНажмите Enter для продолжения!\n"
 
 	read
 
-	clear
+#	clear
 
 	tput sgr 0
 done
