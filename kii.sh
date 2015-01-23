@@ -12,7 +12,7 @@
 
 ###########################################################################
 
-FILE="/data/Project/bash/trainer.lst"	# File with question & ansver
+FILE="./trainer.lst"			# File with question & ansver
 NUMTRY=12				# Max number of user errors
 COUNTER=0				# Counter for some control
 FARR[0]=0				# Array of question & ansver
@@ -200,6 +200,8 @@ do
 			
 			echo -e "Вы ввели: $USERNUMSTR\n"
 
+			COUNTER=$(($COUNTER+1))
+
 			if [[ $USERNUMSTR -gt $highbord ]]
 			then
 				echo "Ввдёное число: $USERNUMSTR, слишком большое"
@@ -219,6 +221,7 @@ do
 			COUNTER=$(($COUNTER+1))
 			echo "В качестве номера строки выбрано: $USERNUMSTR"
 		fi
+
 	elif [[ $MISNUM -eq $INSERTCOUNT ]]
 	then
 		# Insert question from not ansvered array
@@ -231,6 +234,7 @@ do
 				USERNUMSTR=${ERRQ[$i]}
 				echo "Произведена вставка вопроса на который был дан не верный ответ"
 				echo -e "В качестве номера строки выбрано: "$USERNUMSTR'\n'
+				COUNTER=$(($COUNTER+1))
 				break
 			fi
 		done
@@ -251,6 +255,7 @@ do
 		continue
 	fi
 
+	# Start QUESTION
 	echo -e "Вопрос: $(tput setaf 2)"${FARR[$USERNUMSTR]} | awk -F'*' '{print $1'\n'}'
 	tput sgr 0
 	echo -e "Введите ответ:\n"
@@ -265,14 +270,10 @@ do
 		ORIGARR[$i]="$(echo "$ORIGSTRING" | awk -v i=$i -F ',' '{print $i}')"
 	done
 
-
 	# Get user ansver
 	read userchoise
-
 	ANSSTRING="$(echo "$userchoise" | sed -e "s/[[:space:]]\+/*/g")"
-
 	userchoise=
-
 
 	ANSFIL="$(echo "$ANSSTRING" | awk -F "," '{print NF}')"
 
@@ -357,9 +358,10 @@ do
 	then
 		NUMTRY=$(($NUMTRY-1))
 	
-		if [ $NUMTRY -eq 0 ]
+		if [ $NUMTRY -eq 0 ] && [[ $ERRCOUNTER -eq $SOLVEDERR ]]
 		then
-			echo "Все попытки исчерпаны"
+			echo "Вы ответили на все вопросы из заданого диапазона"
+			echo -e "Выполнено завершение программы\n"
 			exit 0
 		fi
 
@@ -372,7 +374,7 @@ do
 
 		INSERTCOUNT=$(($INSERTCOUNT+1))
 
-	elif [[ $MISNUM -eq $INSERTCOUNT ]]
+	elif [[ $MISNUM -eq $INSERTCOUNT ]] && [[ $ERRCOUNTER -eq $SOLVEDERR ]]
 	then
 		# If this question is not ansvered, reset counter
 		# and after 3 normal question, call not ansvered question
