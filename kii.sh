@@ -13,7 +13,8 @@
 ###########################################################################
 
 FILE="./trainer.lst"			# File with question & ansver
-NUMTRY=12				# Max number of user errors
+MAXERR=12				# Recomendation of max errors
+NUMTRY=$MAXERR				# Left recomended count of error
 COUNTER=0				# Counter for some control
 FARR[0]=0				# Array of question & ansver
 USERAND=				# Use random sequesnce?
@@ -97,17 +98,34 @@ numinfun() {
 	return 0
 }
 
-
-
 # Read file to array
 while read STRINGTXT
 do
-	# Skip comments "#"
-	if [ -n "$STRINGTXT" ] && !(echo $STRINGTXT | grep "^#" > /dev/null 2>&1 )
+	# Remove overhead spaces
+	STRINGTXT="$(echo "$STRINGTXT" | sed -e "s/[[:space:]]\+/\ /g")"
+
+	# Skip empty string from file
+	if [ -z "$STRINGTXT" ]
 	then
-		FARR[$COUNTER]="$(echo "$STRINGTXT" | sed -e "s/[[:space:]]\+/\ /g")"
-		COUNTER="$(($COUNTER+1))"
+		echo "Ошибка: строка "$(($COUNTER+1))" в файле пустая, она не будет использоваться"
+		continue
 	fi
+		
+	# Skip comments from file	
+	if $(echo $STRINGTXT | grep "^#" > /dev/null 2>&1)
+	then
+		continue
+	fi
+
+	# If symbol * occur often then 1 times
+	if [ 2 -ne $(echo $STRINGTXT | awk -F '*' '{print NF}') ]
+	then
+		echo "В строке "$(($COUNTER+1))" обнаружено более одного символа разделителя [ * ]"
+		continue
+	fi
+
+	FARR[$COUNTER]=$STRINGTXT
+	COUNTER="$(($COUNTER+1))"
 done < $FILE
 
 NUMSTRING=${#FARR[@]}
@@ -184,8 +202,8 @@ while true
 do
 	echo "Отсчёт строк начинается от "$lowbord
 	echo "Всего строк: "$NUMSTRING
-	echo "Всего попыток: "$NUMTRY
-	echo "Осталось попыток: "$NUMTRY
+	echo "Идеальный порог ошибок: "$MAXERR
+	echo "Осталось допустимых ошибок: "$NUMTRY
 	echo "Правильных ответов: "$GOODQUEST
 	echo "Допущено ошибок: "$ERRCOUNTER
 	echo "Исправленно ошибок: "$SOLVEDERR
@@ -240,21 +258,6 @@ do
 		done
 	fi
 	
-	if [ -z ${FARR[$USERNUMSTR]} ] 2>/dev/null
-	then
-		echo "Ошибка: строка в файле пустая, попробуйте ещё раз"
-		continue
-	fi
-
-	if [ "2" != "$(echo ${FARR[$USERNUMSTR]} | awk -F "*" '{print NF}')" ]
-	then
-		echo ""
-		echo "В выбраной строке обнаружено более одного символа разделителя [ * ]"
-		echo "строка $USERNUMSTR не может быть использована!"
-		echo ""
-		continue
-	fi
-
 	# Start QUESTION
 	echo -e "Вопрос: $(tput setaf 2)"${FARR[$USERNUMSTR]} | awk -F'*' '{print $1'\n'}'
 	tput sgr 0
@@ -308,8 +311,7 @@ do
 		tput sgr 0
 	elif [ $ORIGFIL -gt $HIT ]
 	then
-		echo -e "\tВы набрали $(tput setaf 6)$HIT$(tput sgr 0) очков из\
-		       	$(tput setaf 2)$ORIGFIL$(tput sgr 0) возможных\n"
+		echo -e "\tВы набрали $(tput setaf 6)$HIT$(tput sgr 0) очков из $(tput setaf 2)$ORIGFIL$(tput sgr 0) возможных\n"
 	else
 		tput setaf 3
 		echo -e "\tВаш ответ полностью совпадает!\n"
@@ -330,7 +332,8 @@ do
 			GOODQUEST=$(($GOODQUEST+1))
 
 			INSERTCOUNT=$(($INSERTCOUNT+1))
-		else
+		elif [[ $MISNUM -eq $INSERTCOUNT ]]
+		then
 			# If this recheck, add as solved
 			SOLVEDERR=$(($SOLVEDERR+1))
 
@@ -345,7 +348,10 @@ do
 				fi
 			done
 
-			INSERTCOUNT=0
+			if [ $NUMTRY -ne 0 ]
+			then
+				INSERTCOUNT=0
+			fi
 		fi
 
 		continue
@@ -354,10 +360,14 @@ do
 	echo -e "\tОтвет был таков: $(tput setaf 5)"$RIGHTANS"$(tput sgr 0)\n"
 
 	# If this recheck MISS question, disable counter
+	# and add pointer with error
 	if [[ $MISNUM -gt $INSERTCOUNT ]]
 	then
-		NUMTRY=$(($NUMTRY-1))
-	
+		if [ $NUMTRY -ne 0 ]
+		then
+			NUMTRY=$(($NUMTRY-1))
+		fi
+
 		if [ $NUMTRY -eq 0 ] && [[ $ERRCOUNTER -eq $SOLVEDERR ]]
 		then
 			echo "Вы ответили на все вопросы из заданого диапазона"
@@ -374,12 +384,18 @@ do
 
 		INSERTCOUNT=$(($INSERTCOUNT+1))
 
-	elif [[ $MISNUM -eq $INSERTCOUNT ]] && [[ $ERRCOUNTER -eq $SOLVEDERR ]]
+	# If this error occured while recheck exist error
+	# not add error as dublicate
+	elif [[ $MISNUM -eq $INSERTCOUNT ]]
 	then
-		# If this question is not ansvered, reset counter
-		# and after 3 normal question, call not ansvered question
-		# controlled with this counter
-		INSERTCOUNT=0
+		# Disable counter if this rotate beyond of count trying
+		if [ $NUMTRY -ne 0 ]
+		then
+			# If this question is not ansvered, reset counter
+			# and after 3 normal question, call not ansvered question
+			# controlled with this counter
+			INSERTCOUNT=0
+		fi
 	fi
 
 	echo -e "\n\n\nНажмите Enter для продолжения!\n"
