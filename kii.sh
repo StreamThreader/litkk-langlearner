@@ -98,40 +98,69 @@ numinfun() {
 	return 0
 }
 
+if [ ! -f $FILE ]
+then
+	echo $FILE" не обнаружен"
+	exit
+fi
+
 # Read file to array
-while read STRINGTXT
+readarray -t TMPFARR < $FILE
+
+echo -e "Содержимое файла прочитано в память\n"
+
+# Get number of plain strings
+RAWSTRNUM=${#TMPFARR[@]}
+COUNTER=
+
+echo "Начата обработка строк"
+
+for i in $(seq 0 $RAWSTRNUM)
 do
-	# Remove overhead spaces
-	STRINGTXT="$(echo "$STRINGTXT" | sed -e "s/[[:space:]]\+/\ /g")"
+	echo -ne "."
+	# Replace continuous multiple spaces by one
+	TMPFARR[$i]="$(echo "${TMPFARR[$i]}" | sed -e "s/[[:space:]]\+/\ /g")"
 
 	# Skip empty string from file
-	if [ -z "$STRINGTXT" ]
+	if [ $i -ne $RAWSTRNUM ]
 	then
-		echo "Ошибка: строка "$(($COUNTER+1))" в файле пустая, она не будет использоваться"
+		if [ -z "${TMPFARR[$i]}" ]
+		then
+			echo -e "Cтрока "$i" в файле пустая, она не будет использоваться"'\n'
+			continue
+		fi
+	else
+		echo ">"
+		echo "Анализ массива строк завершен на строке: "$i
+		echo "после обработки осталось строк: "$COUNTER
 		continue
 	fi
-		
-	# Skip comments from file	
-	if $(echo $STRINGTXT | grep "^#" > /dev/null 2>&1)
+
+	# Skip comments from file
+	if $(echo ${TMPFARR[$i]} | grep "^#" > /dev/null 2>&1)
 	then
 		continue
 	fi
 
 	# If symbol * occur often then 1 times
-	if [ 2 -ne $(echo $STRINGTXT | awk -F '*' '{print NF}') ]
+	# count number of fields
+	NFIEL="$(echo "${TMPFARR[$i]}" | awk -F '*' '{print NF}')"
+	if [ 2 -ne $NFIEL ]
 	then
-		echo "В строке "$(($COUNTER+1))" обнаружено более одного символа разделителя [ * ]"
+		echo "В строке "$i" обнаружено не правильное количество полей разделенных символом [ * ]"
+		echo "Такое решение принято, так как в строке найдено "$NFIEL" пол(я/е/ей), а должно быть 2"
+		echo "Из-за этой ошибки, строка не будет использоваться"
+		echo -e "Проанализируйте ошибочную строку: ["$TMPFARR[$i]"]"'\n'
+		NFIEL=
 		continue
 	fi
 
-	FARR[$COUNTER]=$STRINGTXT
+	FARR[$COUNTER]=${TMPFARR[$i]}
 	COUNTER="$(($COUNTER+1))"
-done < $FILE
+done
 
+COUNTER=
 NUMSTRING=${#FARR[@]}
-
-echo -e "Содержимое файла прочитано в память\n"
-
 
 # Request user range
 if yesnofun "Использовать случайный порядок?"
@@ -262,7 +291,7 @@ do
 	echo -e "Вопрос: $(tput setaf 2)"${FARR[$USERNUMSTR]} | awk -F'*' '{print $1'\n'}'
 	tput sgr 0
 	echo -e "Введите ответ:\n"
-			
+
 	# Read second part after * and remove spaces
 	ORIGSTRING="$(echo ${FARR[$USERNUMSTR]} | awk -F "*" '{print $2}' |sed -e "s/[[:space:]]\+/*/g")"
 
@@ -318,11 +347,11 @@ do
 		tput sgr 0
 		echo -e "\tс оригиналом: "$RIGHTANS"\n"
 
-	        echo -e "\n\n\nНажмите Enter для продолжения!\n"
+		echo -e "\n\n\nНажмите Enter для продолжения!\n"
 
-	        read
+		read
 
-	        clear
+		clear
 
 		tput sgr 0
 
