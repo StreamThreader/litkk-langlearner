@@ -7,8 +7,6 @@
 #
 # Programm for learn some text with check itself
 #
-#
-
 
 ###########################################################################
 
@@ -33,17 +31,7 @@ GOODQUEST=0				# Count of good ansvered questions
 MISNUM=3				# How many iteration can by before insert
 					# not ansvered question
 
-
 ###########################################################################
-
-
-if [ -f "$FILE" ]
-then
-	echo -e "\nФайл $FILE обнаружен"
-else
-	echo -e "\nФайл $FILE не обнаружен\n"
-	exit 1
-fi
 
 # Function check user ansver Yes or No
 yesnofun() {
@@ -98,20 +86,22 @@ numinfun() {
 	return 0
 }
 
-if [ ! -f $FILE ]
+if [ -f "$FILE" ]
 then
-	echo $FILE" не обнаружен"
-	exit
+	echo -e "\nФайл $FILE доступен для чтения"
+else
+	echo -e "\nФайл $FILE не обнаружен\n"
+	exit 1
 fi
 
-# Read file to array
+# Read file to array (as is, without filtering)
 readarray -t TMPFARR < $FILE
 
-echo -e "Содержимое файла прочитано в память\n"
+echo -e "Содержимое файла $FILE прочитано в память\n"
 
 # Get number of plain strings
 RAWSTRNUM=${#TMPFARR[@]}
-COUNTER=
+COUNTER=0
 
 echo "Начата обработка строк"
 
@@ -155,6 +145,7 @@ do
 		continue
 	fi
 
+	# Write to normal array from temporary (after filtering)
 	FARR[$COUNTER]=${TMPFARR[$i]}
 	COUNTER="$(($COUNTER+1))"
 done
@@ -238,6 +229,7 @@ do
 	echo "Исправленно ошибок: "$SOLVEDERR
 	echo "___________________________"
 
+	# If this is first turn
 	if [[ $MISNUM -gt $INSERTCOUNT ]]
 	then
 		if [ $USERAND == NO ]
@@ -269,7 +261,8 @@ do
 			echo "В качестве номера строки выбрано: $USERNUMSTR"
 		fi
 
-	elif [[ $MISNUM -eq $INSERTCOUNT ]]
+	# Insert question from error array
+	elif [[ $MISNUM -eq $INSERTCOUNT ]] && [[ 0 -ne $ERRCOUNTER ]]
 	then
 		# Insert question from not ansvered array
 		for i in $(seq 0 $ERRCOUNTER)
@@ -286,7 +279,7 @@ do
 			fi
 		done
 	fi
-	
+
 	# Start QUESTION
 	echo -e "Вопрос: $(tput setaf 2)"${FARR[$USERNUMSTR]} | awk -F'*' '{print $1'\n'}'
 	tput sgr 0
