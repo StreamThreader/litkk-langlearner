@@ -150,7 +150,7 @@ do
 	COUNTER="$(($COUNTER+1))"
 done
 
-COUNTER=
+COUNTER=0
 NUMSTRING=${#FARR[@]}
 
 # Request user range
@@ -227,6 +227,9 @@ do
 	echo "Правильных ответов: "$GOODQUEST
 	echo "Допущено ошибок: "$ERRCOUNTER
 	echo "Исправленно ошибок: "$SOLVEDERR
+	echo "DEBUG"
+	echo "Интвервал вставки (контстанта): "$MISNUM
+	echo "Сколько уже сделано ходов (счетчик): "$INSERTCOUNT
 	echo "___________________________"
 
 	# If this is first turn
@@ -261,7 +264,7 @@ do
 			echo "В качестве номера строки выбрано: $USERNUMSTR"
 		fi
 
-	# Insert question from error array
+	# Insert question from error array, if error counter not 0
 	elif [[ $MISNUM -eq $INSERTCOUNT ]] && [[ 0 -ne $ERRCOUNTER ]]
 	then
 		# Insert question from not ansvered array
@@ -348,13 +351,7 @@ do
 
 		tput sgr 0
 
-		if [[ $MISNUM -gt $INSERTCOUNT ]]
-		then
-			# If this new good ansver
-			GOODQUEST=$(($GOODQUEST+1))
-
-			INSERTCOUNT=$(($INSERTCOUNT+1))
-		elif [[ $MISNUM -eq $INSERTCOUNT ]]
+		if [[ $MISNUM -eq $INSERTCOUNT ]] && [[ 0 -ne $ERRCOUNTER ]]
 		then
 			# If this recheck, add as solved
 			SOLVEDERR=$(($SOLVEDERR+1))
@@ -374,10 +371,17 @@ do
 			then
 				INSERTCOUNT=0
 			fi
+
+		elif [[ $MISNUM -eq $INSERTCOUNT ]] && [[ 0 -eq $ERRCOUNTER ]]
+		then
+			# If this new good ansver
+			GOODQUEST=$(($GOODQUEST+1))
+			INSERTCOUNT=$(($INSERTCOUNT+1))
 		fi
 
 		continue
 	fi
+
 
 	echo -e "\tОтвет был таков: $(tput setaf 5)"$RIGHTANS"$(tput sgr 0)\n"
 
