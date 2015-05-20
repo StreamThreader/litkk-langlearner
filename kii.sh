@@ -221,17 +221,17 @@ COUNTER=0
 
 while true
 do
-	echo "Отсчёт строк начинается от: "$lowbord
-	echo "Всего строк: "$NUMSTRING
-	echo "Идеальный порог ошибок: "$MAXERR
-	echo "Осталось допустимых ошибок: "$NUMTRY
-	echo "Правильных ответов: "$GOODQUEST
-	echo "Допущено ошибок: "$ERRCOUNTER
-	echo "Исправленно ошибок: "$SOLVEDERR
+	echo -e "Отсчёт строк начинается от: "$(tput setaf 3)$lowbord$(tput sgr 0)
+	echo "Всего строк: "$(tput setaf 3)$NUMSTRING$(tput sgr 0)
+	echo "Идеальный порог ошибок: "$(tput setaf 3)$MAXERR$(tput sgr 0)
+	echo "Осталось допустимых ошибок: "$(tput setaf 3)$NUMTRY$(tput sgr 0)
+	echo "Правильных ответов: "$(tput setaf 3)$GOODQUEST$(tput sgr 0)
+	echo "Допущено ошибок: "$(tput setaf 3)$ERRCOUNTER$(tput sgr 0)
+	echo "Исправленно ошибок: "$(tput setaf 3)$SOLVEDERR$(tput sgr 0)
 	echo "---DEBUG---"
-	echo "Версия программы: "$VERSION
-	echo "Установленный порог ходов до вставки: "$MISNUM
-	echo "Отсчет ходов до вставки (если есть ошибки): "$INSERTCOUNT
+	echo "Версия программы: "$(tput setaf 3)$VERSION$(tput sgr 0)
+	echo "Установленный порог ходов до вставки: "$(tput setaf 3)$MISNUM$(tput sgr 0)
+	echo "Отсчет ходов до вставки (если есть ошибки): "$(tput setaf 3)$INSERTCOUNT$(tput sgr 0)
 	echo "___________________________"
 
 	# If this is first turn
