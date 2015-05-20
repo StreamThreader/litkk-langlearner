@@ -10,6 +10,7 @@
 
 ###########################################################################
 
+VERSION="0.1.1"				# Version of program
 FILE="./trainer.lst"			# File with question & ansver
 MAXERR=12				# Recomendation of max errors
 NUMTRY=$MAXERR				# Left recomended count of error
@@ -220,16 +221,17 @@ COUNTER=0
 
 while true
 do
-	echo "Отсчёт строк начинается от "$lowbord
+	echo "Отсчёт строк начинается от: "$lowbord
 	echo "Всего строк: "$NUMSTRING
 	echo "Идеальный порог ошибок: "$MAXERR
 	echo "Осталось допустимых ошибок: "$NUMTRY
 	echo "Правильных ответов: "$GOODQUEST
 	echo "Допущено ошибок: "$ERRCOUNTER
 	echo "Исправленно ошибок: "$SOLVEDERR
-	echo "DEBUG"
-	echo "Интвервал вставки (контстанта): "$MISNUM
-	echo "Сколько уже сделано ходов (счетчик): "$INSERTCOUNT
+	echo "---DEBUG---"
+	echo "Версия программы: "$VERSION
+	echo "Установленный порог ходов до вставки: "$MISNUM
+	echo "Отсчет ходов до вставки (если есть ошибки): "$INSERTCOUNT
 	echo "___________________________"
 
 	# If this is first turn
