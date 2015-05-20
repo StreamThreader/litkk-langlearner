@@ -221,7 +221,7 @@ COUNTER=0
 
 while true
 do
-	echo -e "Отсчёт строк начинается от: "$(tput setaf 3)$lowbord$(tput sgr 0)
+	echo "Отсчёт строк начинается от: "$(tput setaf 3)$lowbord$(tput sgr 0)
 	echo "Всего строк: "$(tput setaf 3)$NUMSTRING$(tput sgr 0)
 	echo "Идеальный порог ошибок: "$(tput setaf 3)$MAXERR$(tput sgr 0)
 	echo "Осталось допустимых ошибок: "$(tput setaf 3)$NUMTRY$(tput sgr 0)
