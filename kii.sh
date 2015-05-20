@@ -10,15 +10,16 @@
 
 ###########################################################################
 
-VERSION="0.1.1"				# Version of program
-FILE="./trainer.lst"			# File with question & ansver
-MAXERR=12				# Recomendation of max errors
-NUMTRY=$MAXERR				# Left recomended count of error
-COUNTER=0				# Counter for some control
-FARR[0]=0				# Array of question & ansver
-USERAND=				# Use random sequesnce?
-lowbord=				# Low border
-highbord=				# High borader
+readonly VERSION="0.1.1"		# Program version
+readonly FILE="./trainer.lst"		# File contained questions and ansvers
+readonly MAXERR=12			# Threshold of max eventually errors
+readonly MISNUM=3			# Threshold, after that make insert
+NUMTRY=$MAXERR				# Count of errors, it control threshold
+COUNTER=0				# Counter multipurpose
+FARR[0]=0				# Array contain questions and ansvers
+USERAND=				# Flag set/unset random sequesnce
+lowbord=				# Threshold low sting
+highbord=				# Threshold high string
 RANDSEQ=				# Randomized sequence of strings
 STRINGTXT=				# File string to variable
 NUMSTRING=				# Number of string
@@ -26,12 +27,9 @@ USERNUMSTR=				# User choise number of string
 userchoise=				# User choise for program question
 ERRQ[0]=0				# Array failed questions (pointer)
 SOLVEDERR=0				# How many erros, re-ansvered
-INSERTCOUNT=0				# Count turn, for control insert question
+INSERTCOUNT=0				# Count turns after that make insert
 ERRCOUNTER=0				# Counter of recheck question
-GOODQUEST=0				# Count of good ansvered questions
-MISNUM=3				# How many iteration can by before insert
-					# not ansvered question
-
+GOODQUEST=0				# Count of good passed questions
 ###########################################################################
 
 # Function check user ansver Yes or No
@@ -77,7 +75,7 @@ numinfun() {
 		then
 			break
 		else
-			echo -e "Ввдёное число: $USERANSVER, нельзя использовать, попробуйте ещё раз\n"
+			echo -e "Введнный символ: $USERANSVER, нельзя использовать (это число?), попробуйте ещё раз\n"
 			continue
 		fi
 	done
@@ -92,6 +90,7 @@ then
 	echo -e "\nФайл $FILE доступен для чтения"
 else
 	echo -e "\nФайл $FILE не обнаружен\n"
+	read
 	exit 1
 fi
 
@@ -152,7 +151,7 @@ do
 done
 
 COUNTER=0
-NUMSTRING=${#FARR[@]}
+readonly NUMSTRING=${#FARR[@]}
 
 # Request user range
 if yesnofun "Использовать случайный порядок?"
