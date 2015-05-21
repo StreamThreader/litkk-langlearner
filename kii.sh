@@ -10,7 +10,7 @@
 
 ###########################################################################
 
-readonly VERSION="0.1.1"		# Program version
+readonly VERSION="0.1.2"		# Program version
 readonly FILE="./trainer.lst"		# File contained questions and ansvers
 readonly MAXERR=12			# Threshold of max eventually errors
 readonly MISNUM=3			# Threshold, after that make insert
@@ -151,7 +151,7 @@ do
 done
 
 COUNTER=0
-readonly NUMSTRING=${#FARR[@]}
+NUMSTRING=${#FARR[@]}
 
 # Request user range
 if yesnofun "Использовать случайный порядок?"
@@ -165,7 +165,7 @@ then
 
 			if [[ $lowbord -gt $NUMSTRING ]]
 			then
-				echo -e "Нижний порог не может быть больше числа $NUMSTRING\n"
+				echo -e "Нижний порог не может быть больше количества всех строк: $NUMSTRING\n"
 				continue
 			else
 				break
@@ -174,13 +174,16 @@ then
 
 		while true
 		do
-
 			numinfun "Укажите верхний порог"
 			highbord="$retval"
 
 			if [[ $highbord -gt $NUMSTRING ]]
 			then
-				echo -e "Верхний порог не может быть больше числа $NUMSTRING\n"
+				echo -e "Верхний порог не может быть больше количества всех сторк: $NUMSTRING\n"
+				continue
+			elif [[ $lowbord -gt $highbord ]]
+			then
+				echo -e "Верхний порог не может быть меньше чем нижний порог: $lowbord\n"
 				continue
 			else
 				break
@@ -188,7 +191,7 @@ then
 		done
 
 		# From there NUMSTRING - is number of strig (not a upper limit)
-		NUMSTRING=$(($highbord-$lowbord))
+		readonly NUMSTRING=$(($highbord-$lowbord))
 	else
 		echo -e "Будет использован диапозон: 0 - $NUMSTRING\n"
 
