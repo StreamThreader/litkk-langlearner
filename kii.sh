@@ -125,7 +125,8 @@ goodansver() {
 	elif [[ $MISNUM -eq $INSERTCOUNT ]] && [[ 0 -eq $ERRCOUNTER ]]
 	then
 		GOODQUEST=$(($GOODQUEST+1))
-		INSERTCOUNT=$(($INSERTCOUNT+1))
+	else
+		GOODQUEST=$(($GOODQUEST+1))
 	fi
 }
 
