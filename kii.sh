@@ -10,7 +10,7 @@
 
 ###########################################################################
 
-readonly VERSION="0.1.2"		# Program version
+readonly VERSION="0.1.3"		# Program version
 readonly FILE="./trainer.lst"		# File contained questions and ansvers
 readonly MAXERR=12			# Threshold of max eventually errors
 readonly MISNUM=3			# Threshold, after that make insert
@@ -30,6 +30,7 @@ SOLVEDERR=0				# How many erros, re-ansvered
 INSERTCOUNT=0				# Count turns after that make insert
 ERRCOUNTER=0				# Counter of recheck question
 GOODQUEST=0				# Count of good passed questions
+HITTCTRL=1				# How many HIT can by for PASS ( > 0 )
 ###########################################################################
 
 # Function check user ansver Yes or No
@@ -84,6 +85,101 @@ numinfun() {
 
 	return 0
 }
+
+goodansver() {
+	tput setaf 3
+	echo -e "\tВаш ответ правильный!\n"
+	tput sgr 0
+	echo -e "\tОригинал для сравнения: "$RIGHTANS"\n"
+
+	echo -e "\n\n\nНажмите Enter для продолжения!\n"
+
+	read
+	clear
+
+	tput sgr 0
+
+	# Detect, if this turn was inserted
+	if [[ $MISNUM -eq $INSERTCOUNT ]] && [[ 0 -ne $ERRCOUNTER ]]
+	then
+		# If this recheck, add as solved
+		SOLVEDERR=$(($SOLVEDERR+1))
+
+		# Exclude pointer from array
+		for i in $(seq 0 $ERRCOUNTER)
+		do
+			# Search current value
+			if [[ ${ERRQ[$i]} == $USERNUMSTR ]]
+			then
+				ERRQ[$i]="OK"
+				break
+			fi
+		done
+
+		# Reset counter if we have remain attempts
+		if [ $NUMTRY -ne 0 ]
+		then
+			INSERTCOUNT=0
+		fi
+	# If this turn was usual, while erros 0
+	elif [[ $MISNUM -eq $INSERTCOUNT ]] && [[ 0 -eq $ERRCOUNTER ]]
+	then
+		GOODQUEST=$(($GOODQUEST+1))
+		INSERTCOUNT=$(($INSERTCOUNT+1))
+	fi
+}
+
+badansver() {
+	echo -e "\tОтвет был таков: $(tput setaf 5)"$RIGHTANS"$(tput sgr 0)\n"
+	# If this recheck MISS question, disable counter
+	# and add pointer with error
+	if [[ $MISNUM -gt $INSERTCOUNT ]]
+	then
+		if [ $NUMTRY -ne 0 ]
+		then
+			NUMTRY=$(($NUMTRY-1))
+		fi
+
+		if [ $NUMTRY -eq 0 ] && [[ $ERRCOUNTER -eq $SOLVEDERR ]]
+		then
+			echo "Вы ответили на все вопросы из заданого диапазона"
+			echo -e "Выполнено завершение программы\n"
+			read
+			exit 0
+		fi
+
+		# Point to not ansvered question
+		ERRQ[$ERRCOUNTER]=$USERNUMSTR
+
+		# After add pointer, shift to next item
+		# increase error count
+		ERRCOUNTER=$(($ERRCOUNTER+1))
+
+		INSERTCOUNT=$(($INSERTCOUNT+1))
+
+	# If this error occured while recheck exist error
+	# not add error as dublicate
+	elif [[ $MISNUM -eq $INSERTCOUNT ]]
+	then
+		# Disable counter if this rotate beyond of count trying
+		if [ $NUMTRY -ne 0 ]
+		then
+			# If this question is not ansvered, reset counter
+			# and after 3 normal question, call not ansvered question
+			# controlled with this counter
+			INSERTCOUNT=0
+		fi
+	fi
+
+	echo -e "\n\n\nНажмите Enter для продолжения!\n"
+
+	read
+	clear
+	tput sgr 0
+}
+
+
+################################################################
 
 if [ -f "$FILE" ]
 then
@@ -230,6 +326,7 @@ do
 	echo "Правильных ответов: "$(tput setaf 3)$GOODQUEST$(tput sgr 0)
 	echo "Допущено ошибок: "$(tput setaf 3)$ERRCOUNTER$(tput sgr 0)
 	echo "Исправленно ошибок: "$(tput setaf 3)$SOLVEDERR$(tput sgr 0)
+	echo "Количество правильных частей для прохождения: "$(tput setaf 3)$HITTCTRL$(tput sgr 0)
 	echo "---DEBUG---"
 	echo "Версия программы: "$(tput setaf 3)$VERSION$(tput sgr 0)
 	echo "Установленный порог ходов до вставки: "$(tput setaf 3)$MISNUM$(tput sgr 0)
@@ -295,6 +392,7 @@ do
 	# Read second part after * and remove spaces
 	ORIGSTRING="$(echo ${FARR[$USERNUMSTR]} | awk -F "*" '{print $2}' |sed -e "s/[[:space:]]\+/*/g")"
 
+	# Count numbers of fields in original string
 	ORIGFIL="$(echo "$ORIGSTRING" | awk -F "," '{print NF}')"
 
 	for i in $(seq 1 $ORIGFIL)
@@ -307,6 +405,7 @@ do
 	ANSSTRING="$(echo "$userchoise" | sed -e "s/[[:space:]]\+/*/g")"
 	userchoise=
 
+	# Count numbers of fields in user string (ansver)
 	ANSFIL="$(echo "$ANSSTRING" | awk -F "," '{print NF}')"
 
 	for i in $(seq 1 $ANSFIL)
@@ -333,108 +432,19 @@ do
 
 	RIGHTANS="$(echo $ORIGSTRING | sed -e "s/*/\ /g")"
 
-	if [ $HIT -eq 0 ]
+	if [ $ORIGFIL -eq $HIT ]
 	then
-		tput setaf 1
-		echo -e "\tВаш ответ не совпал\n"
-		tput sgr 0
-	elif [ $ORIGFIL -gt $HIT ]
+		goodansver
+
+	elif [ $HIT -ge $HITTCTRL ]
 	then
-		echo -e "\tВы набрали $(tput setaf 6)$HIT$(tput sgr 0) очков из $(tput setaf 2)$ORIGFIL$(tput sgr 0) возможных\n"
-	else
-		tput setaf 3
-		echo -e "\tВаш ответ полностью совпадает!\n"
-		tput sgr 0
-		echo -e "\tс оригиналом: "$RIGHTANS"\n"
+		echo -e "\tВы набрали $(tput setaf 6)$HIT$(tput sgr 0) очков из $(tput setaf 2)$ORIGFIL$(tput sgr 0) возможных, но этого достаточно\n"
+		goodansver
 
-		echo -e "\n\n\nНажмите Enter для продолжения!\n"
-
-		read
-
-		clear
-
-		tput sgr 0
-
-		if [[ $MISNUM -eq $INSERTCOUNT ]] && [[ 0 -ne $ERRCOUNTER ]]
-		then
-			# If this recheck, add as solved
-			SOLVEDERR=$(($SOLVEDERR+1))
-
-			# Exclude pointer from array
-			for i in $(seq 0 $ERRCOUNTER)
-			do
-				# Search current value
-				if [[ ${ERRQ[$i]} == $USERNUMSTR ]]
-				then
-					ERRQ[$i]="OK"
-					break
-				fi
-			done
-
-			if [ $NUMTRY -ne 0 ]
-			then
-				INSERTCOUNT=0
-			fi
-
-		elif [[ $MISNUM -eq $INSERTCOUNT ]] && [[ 0 -eq $ERRCOUNTER ]]
-		then
-			# If this new good ansver
-			GOODQUEST=$(($GOODQUEST+1))
-			INSERTCOUNT=$(($INSERTCOUNT+1))
-		fi
-
-		continue
+	elif [ $ORIGFIL -gt $HIT  ] && [ $HIT -lt $HITTCTRL ]
+	then
+		echo -e "\tВы набрали $(tput setaf 6)$HIT$(tput sgr 0) очков из $(tput setaf 2)$ORIGFIL$(tput sgr 0) возможных, и этого не достаточно\n"
+		badansver
 	fi
-
-
-	echo -e "\tОтвет был таков: $(tput setaf 5)"$RIGHTANS"$(tput sgr 0)\n"
-
-	# If this recheck MISS question, disable counter
-	# and add pointer with error
-	if [[ $MISNUM -gt $INSERTCOUNT ]]
-	then
-		if [ $NUMTRY -ne 0 ]
-		then
-			NUMTRY=$(($NUMTRY-1))
-		fi
-
-		if [ $NUMTRY -eq 0 ] && [[ $ERRCOUNTER -eq $SOLVEDERR ]]
-		then
-			echo "Вы ответили на все вопросы из заданого диапазона"
-			echo -e "Выполнено завершение программы\n"
-			read
-			exit 0
-		fi
-
-		# Point to not ansvered question
-		ERRQ[$ERRCOUNTER]=$USERNUMSTR
-
-		# After add pointer, shift to next item
-		# increase error count
-		ERRCOUNTER=$(($ERRCOUNTER+1))
-
-		INSERTCOUNT=$(($INSERTCOUNT+1))
-
-	# If this error occured while recheck exist error
-	# not add error as dublicate
-	elif [[ $MISNUM -eq $INSERTCOUNT ]]
-	then
-		# Disable counter if this rotate beyond of count trying
-		if [ $NUMTRY -ne 0 ]
-		then
-			# If this question is not ansvered, reset counter
-			# and after 3 normal question, call not ansvered question
-			# controlled with this counter
-			INSERTCOUNT=0
-		fi
-	fi
-
-	echo -e "\n\n\nНажмите Enter для продолжения!\n"
-
-	read
-
-	clear
-
-	tput sgr 0
 done
 
