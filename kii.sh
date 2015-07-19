@@ -10,7 +10,7 @@
 
 ###########################################################################
 
-readonly VERSION="0.1.3"		# Program version
+readonly VERSION="0.1.4"		# Program version
 readonly FILE="./trainer.lst"		# File contained questions and ansvers
 readonly MAXERR=12			# Threshold of max eventually errors
 readonly MISNUM=3			# Threshold, after that make insert
@@ -92,11 +92,6 @@ goodansver() {
 	tput sgr 0
 	echo -e "\tОригинал для сравнения: "$RIGHTANS"\n"
 
-	echo -e "\n\n\nНажмите Enter для продолжения!\n"
-
-	read
-	clear
-
 	tput sgr 0
 
 	# Detect, if this turn was inserted
@@ -128,6 +123,11 @@ goodansver() {
 	else
 		GOODQUEST=$(($GOODQUEST+1))
 	fi
+
+	echo -e "\n\n\nНажмите Enter для продолжения!\n"
+
+	read
+	clear
 }
 
 badansver() {
